@@ -1,36 +1,151 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Next.js App Deployment with Docker and GKE
 
-## Getting Started
+A step-by-step guide to deploying a Next.js app using Docker, Google Kubernetes Engine (GKE), and ArgoCD for continuous deployment.
 
-First, run the development server:
+## What We Built
+
+- Next.js app with TypeScript
+- Containerized the app using Docker
+- Deployed to Google Cloud using GKE
+- Set up automatic deployments with ArgoCD
+
+## Prerequisites
+
+- Node.js installed
+- Docker Desktop
+- Google Cloud account
+- Basic knowledge of TypeScript and React
+
+## Step 1: Create Next.js App
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx create-next-app@latest my-app
+cd my-app
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Step 2: Containerize with Docker
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a `Dockerfile` in your project root:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```dockerfile
+# Build stage
+FROM node:18-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
 
-## Learn More
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
 
-To learn more about Next.js, take a look at the following resources:
+# Production stage
+FROM node:18-alpine AS runner
+WORKDIR /app
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+CMD ["node", "server.js"]
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Build and test locally:
+```bash
+docker build -t nextjs-app .
+docker run -p 3000:3000 nextjs-app
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Step 3: Deploy to GKE
 
-## Deploy on Vercel
+Create deployment files:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```yaml
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextjs-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nextjs
+  template:
+    metadata:
+      labels:
+        app: nextjs
+    spec:
+      containers:
+      - name: nextjs
+        image: gcr.io/[PROJECT_ID]/nextjs-app:v1
+        ports:
+        - containerPort: 3000
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Step 4: Set Up ArgoCD
+
+1. Install ArgoCD on your cluster
+2. Access ArgoCD UI
+3. Connect your Git repository
+4. Configure automatic sync
+
+## Common Issues We Faced
+
+1. Docker Desktop not running
+   - Solution: Start Docker Desktop before building
+
+2. PowerShell commands not working
+   - Solution: Use correct string formatting for PowerShell
+
+3. ArgoCD UI access issues
+   - Solution: Use correct port forwarding commands
+
+## Useful Commands
+
+```bash
+# Build Docker image
+docker build -t nextjs-app .
+
+# Deploy to Kubernetes
+kubectl apply -f deployment.yaml
+
+# Check deployment status
+kubectl get deployments
+kubectl get pods
+```
+
+## What We Learned
+
+1. Docker basics:
+   - How to build images
+   - Multi-stage builds
+   - Container management
+
+2. Kubernetes concepts:
+   - Deployments
+   - Services
+   - Pods
+
+3. CI/CD practices:
+   - Automated deployments
+   - Version control
+   - Container registry usage
+
+## Next Steps
+
+- Add monitoring
+- Set up staging environment
+- Implement automated testing
+- Add SSL/TLS
+
+## Project Structure
+```
+my-app/
+├── app/                # Next.js files
+├── kubernetes/        # Kubernetes configs
+├── Dockerfile        # Docker config
+└── README.md        # Documentation
+```
+
