@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: nextjs
-        image: gcr.io/zinc-gist-444617-t2/nextjs-app:v1
+        image: gcr.io/zinc-gist-444617-t2/nextjs-app:v2
         ports:
         - containerPort: 3000
 ---
