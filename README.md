@@ -1,4 +1,4 @@
-# Next.js App Deployment with Docker and GKE
+# Next.js App Deployment with Docker, GKE and ArgoCD
 
 A step-by-step guide to deploying a Next.js app using Docker, Google Kubernetes Engine (GKE), and ArgoCD for continuous deployment.
 
